@@ -1,21 +1,19 @@
-// #![feature(fmt_internals)]
-// #![feature(core_panic)]
 #![allow(clippy::needless_return)]
-
 
 pub struct StackVec<T, const SIZE: usize>([std::mem::MaybeUninit<T>; SIZE], usize);
 
 impl<T, const SIZE: usize> StackVec<T, SIZE> {
+    /// The max capacity of this `StackVec`
     #[inline]
-    pub const fn cap(&self) -> usize { SIZE }
-
+    pub const fn cap(&self) -> usize {
+        SIZE
+    }
+    /// Create a new empty `StackVec`.
     #[inline]
     pub fn new() -> Self {
         use std::mem::MaybeUninit;
         return unsafe { Self(MaybeUninit::uninit().assume_init(), 0) };
     }
-
-
     /// Extend from a slice where `T: Copy`.
     ///
     /// Returns the number of elements copied. If the copy would overflow the capacity the rest is ignored.
@@ -69,8 +67,7 @@ impl<T, const SIZE: usize> StackVec<T, SIZE> {
     pub fn push(&mut self, value: T) {
         #[cold]
         fn off_end() -> ! {
-            core::panicking::panic_fmt(core::fmt::Arguments::new_v1(&["Tried to push off the end of `StackVec`"],
-                                                                    &[]));
+            panic!("Tried to push off the end of `StackVec`");
         }
         if self.1 < SIZE {
             self.0[self.1] = std::mem::MaybeUninit::new(value);
@@ -79,8 +76,10 @@ impl<T, const SIZE: usize> StackVec<T, SIZE> {
     }
     /// The number of elements currently in the `StackVec`.
     #[inline]
-    pub fn len(&self) -> usize { self.1 }
-
+    pub fn len(&self) -> usize {
+        self.1
+    }
+    /// Returns `true` if the `StackVec` contains no elements.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -89,18 +88,12 @@ impl<T, const SIZE: usize> StackVec<T, SIZE> {
     /// A slice of the elements in the `StackVec`.
     #[inline(always)]
     pub fn as_slice(&self) -> &[T] {
-        unsafe {
-            &*(&self.0[..self.1] as *const [std::mem::MaybeUninit<T>] as
-                *const [T])
-        }
+        unsafe { &*(&self.0[..self.1] as *const [std::mem::MaybeUninit<T>] as *const [T]) }
     }
     /// A mutable slice of the elements in the `StackVec`.
     #[inline(always)]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
-        unsafe {
-            &mut *(&mut self.0[..self.1] as *mut [std::mem::MaybeUninit<T>] as
-                *mut [T])
-        }
+        unsafe { &mut *(&mut self.0[..self.1] as *mut [std::mem::MaybeUninit<T>] as *mut [T]) }
     }
     /// A mutable slice of the initialised part of the buffer.
     ///
@@ -130,7 +123,9 @@ impl<T, const SIZE: usize> StackVec<T, SIZE> {
     ///
     /// No elements of the returned slice are initialised.
     #[inline(always)]
-    pub fn rest(&self) -> &[std::mem::MaybeUninit<T>] { &self.0[self.1..] }
+    pub fn rest(&self) -> &[std::mem::MaybeUninit<T>] {
+        &self.0[self.1..]
+    }
     /// # Safety
     /// A mutable reference to the whole capacity buffer.
     ///
@@ -139,22 +134,25 @@ impl<T, const SIZE: usize> StackVec<T, SIZE> {
     /// # Note
     /// If you initialise or uninitialise some element(s), you must remember to update the length with `set_len()`.
     #[inline]
-    pub unsafe fn buffer_mut(&mut self)
-                             -> &mut [std::mem::MaybeUninit<T>; SIZE] {
+    pub unsafe fn buffer_mut(&mut self) -> &mut [std::mem::MaybeUninit<T>; SIZE] {
         &mut self.0
     }
     /// A reference to the whole capacity buffer.
     ///
     /// `..self.len()` will be initialised, `self.len()..` will be uninitialised.
     #[inline]
-    pub fn buffer(&self) -> &[std::mem::MaybeUninit<T>; SIZE] { &self.0 }
+    pub fn buffer(&self) -> &[std::mem::MaybeUninit<T>; SIZE] {
+        &self.0
+    }
     /// # Safety
     /// Set the internal fill pointer of the `StackVec`.
     ///
     /// This changes how much of the buffer is assumed to be initialised.
     /// Only use this if you have manually initialised some of the uninitialised buffer, as it does no initialising itself.
     #[inline]
-    pub unsafe fn set_len(&mut self, len: usize) { self.1 = len; }
+    pub unsafe fn set_len(&mut self, len: usize) {
+        self.1 = len;
+    }
 }
 
 impl<T, const SIZE: usize> std::ops::Drop for StackVec<T, SIZE> {
@@ -162,8 +160,7 @@ impl<T, const SIZE: usize> std::ops::Drop for StackVec<T, SIZE> {
         if std::mem::needs_drop::<T>() {
             for init in &mut self.0[..self.1] {
                 unsafe {
-                    drop(std::mem::replace(init,
-                                           std::mem::MaybeUninit::uninit()).assume_init());
+                    drop(std::mem::replace(init, std::mem::MaybeUninit::uninit()).assume_init());
                 }
             }
         }
@@ -172,43 +169,50 @@ impl<T, const SIZE: usize> std::ops::Drop for StackVec<T, SIZE> {
 
 impl<T, const SIZE: usize> std::ops::DerefMut for StackVec<T, SIZE> {
     #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target { self.as_mut_slice() }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut_slice()
+    }
 }
 
 impl<T, const SIZE: usize> std::ops::Deref for StackVec<T, SIZE> {
     type Target = [T];
     #[inline]
-    fn deref(&self) -> &Self::Target { self.as_slice() }
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
 }
 
 impl<T, const SIZE: usize> std::convert::AsRef<[T]> for StackVec<T, SIZE> {
     #[inline]
-    fn as_ref(&self) -> &[T] { self.as_slice() }
+    fn as_ref(&self) -> &[T] {
+        self.as_slice()
+    }
 }
 
 impl<T, const SIZE: usize> std::convert::AsMut<[T]> for StackVec<T, SIZE> {
     #[inline]
-    fn as_mut(&mut self) -> &mut [T] { self.as_mut_slice() }
+    fn as_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
 }
 
 impl<T, const SIZE: usize> std::borrow::Borrow<[T]> for StackVec<T, SIZE> {
     #[inline]
-    fn borrow(&self) -> &[T] { self.as_slice() }
+    fn borrow(&self) -> &[T] {
+        self.as_slice()
+    }
 }
 
 impl<T, const SIZE: usize> std::borrow::BorrowMut<[T]> for StackVec<T, SIZE> {
     #[inline]
-    fn borrow_mut(&mut self) -> &mut [T] { self.as_mut_slice() }
+    fn borrow_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
 }
 
 impl<T, const SIZE: usize> std::fmt::Debug for StackVec<T, SIZE> where T: std::fmt::Debug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        {
-            let result =
-                f.write_fmt(core::fmt::Arguments::new_v1(&[""],
-                                                         &[core::fmt::ArgumentV1::new_debug(&self.as_slice())]));
-            return result;
-        }
+        f.write_fmt(format_args!("{:?}", self.as_slice()))
     }
 }
 
@@ -261,18 +265,24 @@ impl<T, const SIZE: usize> std::clone::Clone for StackVec<T, SIZE> where T: std:
 
 impl<T, const SIZE: usize> std::convert::From<StackVec<T, SIZE>> for std::vec::Vec<T> {
     #[inline]
-    fn from(from: StackVec<T, SIZE>) -> Self { from.into_iter().collect() }
+    fn from(from: StackVec<T, SIZE>) -> Self {
+        from.into_iter().collect()
+    }
 }
 
 impl<T, const SIZE: usize> std::default::Default for StackVec<T, SIZE> {
     #[inline]
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<T, const SIZE: usize> std::iter::IntoIterator for StackVec<T, SIZE> {
     type Item = T;
     type IntoIter = StackVecIntoIter<T, SIZE>;
-    fn into_iter(self) -> Self::IntoIter { StackVecIntoIter(self, 0) }
+    fn into_iter(self) -> Self::IntoIter {
+        StackVecIntoIter(self, 0)
+    }
 }
 
 impl<const SIZE: usize> std::io::Write for StackVec<u8, SIZE> {
@@ -328,7 +338,9 @@ impl<T, const SIZE: usize> StackVecIntoIter<T, SIZE> {
     #![allow(dead_code)]
     /// The rest of the initialised buffer that has not been consumed yet.
     #[inline]
-    pub fn rest(&self) -> &[T] { &self.0.as_slice()[self.1..] }
+    pub fn rest(&self) -> &[T] {
+        &self.0.as_slice()[self.1..]
+    }
     #[inline(always)]
     fn m_rest(&self) -> &[std::mem::MaybeUninit<T>] {
         &self.0.init_buffer()[self.1..]
@@ -376,7 +388,6 @@ impl<T, const SIZE: usize> std::ops::Drop for StackVecIntoIter<T, SIZE> {
         }
     }
 }
-
 
 
 #[cfg(test)]
@@ -449,7 +460,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn add_more(){
+    fn add_more() {
         let mut sv = StackVec::<u8, 5>::new();
 
         sv.push(1);
