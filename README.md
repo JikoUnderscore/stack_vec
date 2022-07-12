@@ -6,6 +6,12 @@ Create a `Vec<T>` like structs of a specific compile-time size on the stack.
 
 These structs never allocate on the heap, and expose an API similar to `Vec<T>`.
 
+## Install
+Add the following line to your Cargo.toml file:
+```toml
+stack_vec = { git = "https://github.com/JikoUnderscore/stack_vec" , branch = "master"}
+```
+
 ## Usage
 
 ``` rust
