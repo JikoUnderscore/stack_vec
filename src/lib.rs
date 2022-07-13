@@ -17,8 +17,10 @@
 //! ## Usage
 //!
 //! ``` rust
+//! use stack_vec::StackVec;
+//!
 //! fn main() {
-//!     let mut sv = stack_vec::StackVec::<Rect2D, 24>::new();
+//!     let mut sv = StackVec::<Rect2D, 24>::new();
 //!
 //!     sv.push(Rect2D { x: 20, y: 30, w: 50, h: 50 });
 //!     sv.push(Rect2D { x: 10, y: 50, w: 50, h: 50 });
